@@ -76,6 +76,12 @@
                                         {{ $employee->user->email ?? 'Not Linked' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        @if ($employee->user)
+                                            <form action="{{ route('employees.reset-password', $employee) }}" method="POST" class="inline-block mr-3" onsubmit="return confirm('Are you sure you want to reset the password for {{ $employee->user->email }}?')">
+                                                @csrf
+                                                <button type="submit" class="text-yellow-600 hover:text-yellow-800">Reset Password</button>
+                                            </form>
+                                        @endif
                                         <a href="{{ route('employees.show', $employee) }}" class="text-blue-600 hover:text-blue-900 mr-3">View</a>
                                         <a href="{{ route('employees.edit', $employee) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
                                         <form action="{{ route('employees.destroy', $employee) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this employee? This will also unlink any associated user.')">
@@ -90,6 +96,12 @@
                     </table>
                 </div>
 
+                @if (session('password_success'))
+                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4" role="alert">
+                        <span class="block sm:inline">{!! session('password_success') !!}</span>
+                    </div>
+                @endif
+                
                 <div class="mt-4">
                     {{ $employees->links() }}
                 </div>

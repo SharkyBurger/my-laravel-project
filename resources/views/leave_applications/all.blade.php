@@ -31,7 +31,7 @@
                 @endif
 
                 {{-- Basic Filter Form (optional) --}}
-                <form action="{{ route('leave_applications.index') }}" method="GET" class="mb-4 bg-gray-50 p-4 rounded-md shadow-sm">
+                <form action="{{ route('hr.leave_applications.all') }}" method="GET" class="mb-4 bg-gray-50 p-4 rounded-md shadow-sm">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <x-label for="employee_id_filter" value="{{ __('Filter by Employee') }}" />
@@ -46,11 +46,11 @@
                         </div>
                         <div>
                             <x-label for="type_filter" value="{{ __('Filter by Leave Type') }}" />
-                            <select id="type_filter" name="type" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                            <select id="type_filter" name="leave_type_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                                 <option value="">All Types</option>
                                 @foreach($leaveTypes as $type)
-                                    <option value="{{ $type }}" {{ request('type') == $type ? 'selected' : '' }}>
-                                        {{ ucwords(str_replace('_', ' ', $type)) }}
+                                    <option value="{{ $type->id }}" {{ $type->id == $leaveTypeId ? 'selected' : '' }}>
+                                        {{ $type->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -59,9 +59,13 @@
                             <x-label for="status_filter" value="{{ __('Filter by Status') }}" />
                             <select id="status_filter" name="status" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
                                 <option value="">All Statuses</option>
-                                @foreach($approvalStatuses as $status)
-                                    <option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
-                                        {{ ucwords(str_replace('_', ' ', $status)) }}
+                                @foreach ($approvalStatuses as $statusOption)
+                                    <option 
+                                        value="{{ $statusOption }}" 
+                                        {{ $statusOption == $status ? 'selected' : '' }}>
+                                        
+                                        {{-- Display a user-friendly version --}}
+                                        {{ ucwords(str_replace('_', ' ', $statusOption)) }}
                                     </option>
                                 @endforeach
                             </select>

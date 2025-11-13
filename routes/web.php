@@ -26,6 +26,7 @@ use App\Http\Controllers\EmployeeLeaveController;
 
 use App\Http\Controllers\HrController;
 
+use App\Http\Controllers\ChangePasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,6 +92,9 @@ Route::middleware([
 
         Route::resource('employees', EmployeeController::class);
         
+        Route::post('/employees/{employee}/reset-password', [EmployeeController::class, 'resetPassword'])
+        ->name('employees.reset-password')
+        ->middleware('auth'); // Ensure this is protected by appropriate middleware
         
     });
 
@@ -158,9 +162,17 @@ Route::middleware([
     Route::post('/notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/test/markall', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 
-   
+    
     // Route::get('/test', [TestController::class, 'index'])->name('test.index');
     // Route::post('/test/call', [TestController::class, 'call'])->name('test.call');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile/password', [ChangePasswordController::class, 'edit'])
+        ->name('password.edit');
+
+    Route::put('/profile/password', [ChangePasswordController::class, 'update'])
+        ->name('profile.password.update');
 });
 
 // Standard Jetstream authentication routes

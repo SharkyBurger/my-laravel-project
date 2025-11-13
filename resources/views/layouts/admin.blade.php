@@ -30,6 +30,11 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    <x-nav-link href="{{ route('password.edit') }}" :active="request()->routeIs('password.*')">
+                        <i class="fas fa-key mr-3 text-lg"></i>
+                        {{ __('Change Password') }}
+                    </x-nav-link>
+                    
                     @if(Auth::user()->hasRole('academic_head') || Auth::user()->hasRole('registrar'))
                         <div class="mt-4 space-y-1">
                             <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2 px-3">Academic Management</h3>
