@@ -50,7 +50,7 @@ class LeaveApplicationSubmittedForAdmin extends Notification
         return [
             'type' => 'admin_leave_review', // This type must match what's in dashboard.blade.php
             'title' => 'New Leave Application for Admin Review',
-            'message' => "{$this->leaveApplication->employee->first_name} {$this->leaveApplication->employee->first_name} has submitted a leave application ({$this->leaveApplication->leaveType->name}) from {$this->leaveApplication->start_date->format('M d, Y')} to {$this->leaveApplication->end_date->format('M d, Y')}.",
+            'message' => "{$this->leaveApplication->employee->first_name} {$this->leaveApplication->employee->last_name} has submitted a leave application ({$this->leaveApplication->leaveType->name}) from {$this->leaveApplication->start_date->format('M d, Y')} to {$this->leaveApplication->end_date->format('M d, Y')}.",
             'leave_application_id' => $this->leaveApplication->id,
             'applicant_name' => $this->leaveApplication->employee->last_name,
             'leave_type_id' => $this->leaveApplication->leave_type_id,
