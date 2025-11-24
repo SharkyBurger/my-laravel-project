@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'password' => bcrypt('password'),
-                'role' => 'admin',
+                'role' => 'hr',
             ]
         );
 
@@ -55,8 +55,7 @@ class DatabaseSeeder extends Seeder
             EnrollmentSeeder::class,
             EmployeeSeeder::class,
             LeaveTypesSeeder::class,
-            DatabaseSeeder::class,
-             
+
         ]);
     }
 }

@@ -22,7 +22,7 @@ use App\Http\Controllers\AdminLeaveApplicationController; // Your AH Controller!
 use App\Http\Controllers\LeaveApplicationStatusController;
 
 use App\Http\Controllers\EmployeeLeaveController;
-//use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
+use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
 
 use App\Http\Controllers\HrController;
 
