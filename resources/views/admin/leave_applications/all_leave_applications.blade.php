@@ -54,13 +54,14 @@
                                                 </a>
 
                                                 {{-- CANCEL BUTTON: Only shows if Approved --}}
-                                                @if(in_array($application->admin_status, ['approved', 'approved_with_pay', 'approved_without_pay']))
-                                                    <form action="{{ route('admin.leave_applications.cancel', $application->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to CANCEL this approved leave?');">
-                                                        @csrf
-                                                        @method('PUT')
-                                                        <button type="submit" class="text-red-600 hover:text-red-900 ml-2">
-                                                            Cancel
-                                                        </button>
+                                               @if(in_array($application->admin_status, ['approved', 'approved_with_pay', 'approved_without_pay']))
+                                                        <form action="{{ route('admin.leave_applications.cancel', $application->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to cancel this approved leave?');">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" class="text-red-600 hover:text-red-900 ml-2 font-bold">
+                                                                Cancel
+                                                         </button>
+                                                
                                                     </form>
                                                 @endif
                                             </td>

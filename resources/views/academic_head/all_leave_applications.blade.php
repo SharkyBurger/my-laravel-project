@@ -68,15 +68,15 @@
                                                     <a href="{{ URL::signedRoute('ah.leave_applications.review', ['leaveApplication' => $application->id]) }}" class="text-gray-500 hover:text-gray-700 mr-2">View</a>
                                                     
                                                     {{-- CANCEL BUTTON (This was missing) --}}
-                                                    @if($application->ah_status === 'approved')
-                                                        <form action="{{ route('ah.leave_applications.cancel', $application->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to CANCEL this approved leave?');">
-                                                            @csrf
-                                                            @method('PUT')
-                                                            <button type="submit" class="text-red-600 hover:text-red-900 ml-2" title="Cancel Approved Leave">
-                                                                Cancel
-                                                            </button>
-                                                        </form>
-                                                    @endif
+                                                    @if($application->ah_status === 'approved' && $application->approval_status !== 'cancelled')
+    <form action="{{ route('ah.leave_applications.cancel', $application->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to cancel this leave application?');">
+        @csrf
+        @method('PUT')
+        <button type="submit" class="text-red-600 hover:text-red-900 ml-2 font-bold">
+            Cancel
+        </button>
+    </form>
+@endif
                                                 @endif
                                             </td>
                                         </tr>

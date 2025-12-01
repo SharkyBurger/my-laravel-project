@@ -145,18 +145,18 @@ Route::middleware([
         Route::get('/review/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); 
         Route::post('/decide/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'decide'])->name('decide'); 
         Route::get('/all', [AcademicHeadLeaveApplicationController::class, 'allLeaveApplications'])->name('all'); 
-        
-        // --- ADD THIS LINE BELOW ---
         Route::put('/cancel/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'cancel'])->name('cancel');
     });
 
 
      // HR Leave Application Management Routes (Assuming HrLeaveApplicationController exists)
     Route::middleware(['role:hr'])->prefix('hr/leave-applications')->name('hr.leave_applications.')->group(function () {
-        Route::get('/', [HrLeaveApplicationController::class, 'index'])->name('index'); // HR Dashboard / Pending review list
-        Route::get('/review/{leaveApplication}', [HrLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); // View/Review specific application
-        Route::post('/decide/{leaveApplication}', [HrLeaveApplicationController::class, 'decide'])->name('decide'); // Process decision
-        // Consider adding a Route::get('/all', [HrLeaveApplicationController::class, 'allLeaveApplications'])->name('all'); for HR too
+        Route::get('/', [HrLeaveApplicationController::class, 'index'])->name('index'); 
+        Route::get('/review/{leaveApplication}', [HrLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); 
+        Route::post('/decide/{leaveApplication}', [HrLeaveApplicationController::class, 'decide'])->name('decide'); 
+        
+        // --- THIS ADDS THE CANCEL ROUTE ---
+        Route::put('/cancel/{leaveApplication}', [HrLeaveApplicationController::class, 'cancel'])->name('cancel');
     });
 
      // Admin Leave Application Management Routes (Assuming AdminLeaveApplicationController exists)
@@ -164,12 +164,9 @@ Route::middleware([
         Route::get('/', [AdminLeaveApplicationController::class, 'index'])->name('index'); 
         Route::get('/review/{leaveApplication}', [AdminLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); 
         Route::post('/decide/{leaveApplication}', [AdminLeaveApplicationController::class, 'decide'])->name('decide');
-        
-        // --- ADD THIS LINE BELOW ---
+        Route::get('/all', [AdminLeaveApplicationController::class, 'allLeaveApplications'])->name('all');
         Route::put('/cancel/{leaveApplication}', [AdminLeaveApplicationController::class, 'cancel'])->name('cancel');
-    Route::get('/all', [AdminLeaveApplicationController::class, 'allLeaveApplications'])->name('all');
     });
-
 
     // Global Notifications routes (can be accessed by any authenticated user)
     Route::post('/notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');

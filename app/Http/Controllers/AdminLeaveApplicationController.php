@@ -6,22 +6,11 @@ use App\Models\LeaveApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use App\Notifications\LeaveApplicationDecision; // We'll create this next
+use App\Notifications\LeaveApplicationDecision;
 use Illuminate\Notifications\DatabaseNotification;
 
 class AdminLeaveApplicationController extends Controller
 {
-   // Optional: Middleware to ensure only HR can access
-    public function __construct()
-    {
-        // You'll need to define a gate or policy for 'is_hr'
-        // For now, this is a placeholder. You might use Laravel Spatie Permissions.
-        // $this->middleware('can:manage_leave_applications');
-    }
-
-    /**
-     * Show all pending leave applications for Admin review.
-     */
     public function index()
     {
         $pendingApplications = LeaveApplication::where('admin_status', 'pending')
@@ -33,26 +22,12 @@ class AdminLeaveApplicationController extends Controller
         return view('admin.leave_applications.index', compact('pendingApplications'));
     }
 
-    /**
-     * Show details of a specific leave application for review.
-     */
     public function review(Request $request, LeaveApplication $leaveApplication)
     {
-        // Verify signed URL if coming from notification (though index might be direct)
-        // if (!URL::hasValidSignature($request)) { // Only if accessed via signed URL
-        //     abort(403, 'Invalid or expired review link.');
-        // }
-
-        // Load related data
         $leaveApplication->load(['employee', 'classesToMiss.substituteTeacher']);
-         
-
         return view('admin.leave_applications.review', compact('leaveApplication'));
     }
 
-    /**
-     * Process HR decision (approve/reject).
-     */
     public function decide(Request $request, LeaveApplication $leaveApplication)
     {
         $request->validate([
@@ -64,72 +39,57 @@ class AdminLeaveApplicationController extends Controller
         $remarks = $request->input('remarks');
         $approvedBy = Auth::user()->employee->name;
 
-        // Prevent re-deciding already processed applications
         if ($leaveApplication->admin_status !== 'pending') {
             return redirect()->back()->with('error', 'This leave application has already been processed by Admin.');
         }
 
-        // Update application status
         $leaveApplication->admin_status = $decision;
         $leaveApplication->admin_approved_at = Carbon::now();
-        $leaveApplication->admin_approved_by = Auth::user()->employee->id; // Assuming Admin is logged in
+        $leaveApplication->admin_approved_by = Auth::user()->employee->id;
         $leaveApplication->admin_remarks = $remarks;
         $leaveApplication->approval_status = $decision;
         $leaveApplication->save();
 
-       
-       
-
-        // ----------------------------------------------------------------------
-        // NEW: Mark the Admin Manager's notification for this leave application as read
+        // Mark notification as read
         $notification = Auth::user()->unreadNotifications()
-                            ->where('type', 'App\Notifications\LeaveApplicationSubmittedForAdmin') // Admin notification type
+                            ->where('type', 'App\Notifications\LeaveApplicationSubmittedForAdmin')
                             ->whereJsonContains('data->leave_application_id', $leaveApplication->id)
                             ->first();
 
         if ($notification) {
             $notification->markAsRead();
         }
-        // ----------------------------------------------------------------------
 
-
-        // Mark Admin notification as read
-        if (Auth::user()->unreadNotifications->where('data.leave_application_id', $leaveApplication->id)->first()) {
-            Auth::user()->unreadNotifications->where('data.leave_application_id', $leaveApplication->id)->first()->markAsRead();
-        }
-
-        // --- Notify the original employee about the HR decision ---
         $leaveApplication->employee->user->notify(new LeaveApplicationDecision($leaveApplication, $decision, $approvedBy, $remarks));
 
         return redirect()->route('admin.leave_applications.index')->with('success', "Leave application {$decision} successfully.");
     }
+
     /**
      * Cancel an already approved leave application.
      */
     public function cancel(Request $request, LeaveApplication $leaveApplication)
     {
-        // 1. Check if the leave is actually approved
-        // Note: checking for 'approved_with_pay' or 'approved_without_pay' based on your decide method
-        if (!in_array($leaveApplication->admin_status, ['approved_with_pay', 'approved_without_pay', 'approved'])) {
+        // Allow cancellation if it was approved (with or without pay) or just approved generic
+        $allowableStatuses = ['approved_with_pay', 'approved_without_pay', 'approved'];
+
+        if (!in_array($leaveApplication->admin_status, $allowableStatuses) && !in_array($leaveApplication->approval_status, $allowableStatuses)) {
             return redirect()->back()->with('error', 'Only approved applications can be cancelled.');
         }
 
-        // 2. Update Status to Cancelled
+        // Update Status to Cancelled
         $leaveApplication->admin_status = 'cancelled';
-        $leaveApplication->approval_status = 'cancelled'; // Sync main status if used
+        $leaveApplication->approval_status = 'cancelled'; // Cancels the application as a whole
         $leaveApplication->save();
 
-        // 3. (Optional) Notify Employee
-        // $leaveApplication->employee->user->notify(new LeaveApplicationDecision($leaveApplication, 'cancelled', Auth::user()->name, 'Cancelled by Admin'));
+        // Optional: Notify the employee that their approved leave was cancelled
+        // $leaveApplication->employee->user->notify(new LeaveApplicationDecision($leaveApplication, 'cancelled', Auth::user()->employee->name, 'Cancelled by Admin'));
 
         return redirect()->back()->with('success', 'Leave application has been cancelled successfully.');
     }
-    /**
-     * Show ALL leave applications (Approved, Rejected, Cancelled).
-     */
+
     public function allLeaveApplications()
     {
-        // Fetch all applications, ordered by newest first
         $leaveApplications = LeaveApplication::with(['employee', 'leaveType'])
                                 ->orderBy('created_at', 'desc')
                                 ->paginate(10);
