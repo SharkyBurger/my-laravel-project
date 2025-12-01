@@ -19,8 +19,6 @@
                     </a>
                 </div>
 
-
-
                 @if (session('success'))
                     <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
                         <span class="block sm:inline">{{ session('success') }}</span>
@@ -32,10 +30,7 @@
                     </div>
                 @endif
 
-
                 <div class="mb-6">
-                
-
                     @if(is_array($remainingCredits) && !empty($remainingCredits))
                         {{-- Loop through the array only if it's an array and not empty --}}
                         @foreach ($remainingCredits as $type => $credits)
@@ -45,9 +40,7 @@
                         {{-- Display the message directly if it's not a non-empty array --}}
                         <p>No remaining leave credits to display. {{ $remainingCredits }}</p>
                     @endif
-
                 </div>
-
 
                 {{-- Basic Filter Form (optional) --}}
                 <form action="{{ route('leave_applications.index') }}" method="GET" class="mb-4 bg-gray-50 p-4 rounded-md shadow-sm">
@@ -127,13 +120,17 @@
                                             @if ($application->approval_status === 'pending') bg-yellow-100 text-yellow-800
                                             @elseif ($application->approval_status === 'approved_with_pay' || $application->approval_status === 'approved_without_pay') bg-green-100 text-green-800
                                             @elseif ($application->approval_status === 'rejected') bg-red-100 text-red-800
+                                            @elseif ($application->approval_status === 'cancelled') bg-gray-300 text-gray-800
                                             @else bg-gray-100 text-gray-800 @endif">
                                             {{ ucwords(str_replace('_', ' ', $application->approval_status)) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $application->date_filed->format('M d, Y') }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        {{-- View Button (Always visible) --}}
                                         <a href="{{ route('leave_applications.show', $application) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">View</a>
+
+                                        {{-- 1. PENDING STATUS: Show Edit and Delete --}}
                                         @if ($application->approval_status === 'pending')
                                             <a href="{{ route('leave_applications.edit', $application) }}" class="text-blue-600 hover:text-blue-900 mr-3">Edit</a>
                                             <form action="{{ route('leave_applications.destroy', $application) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to delete this leave application? This action cannot be undone.');">
@@ -141,12 +138,20 @@
                                                 @method('DELETE')
                                                 <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
                                             </form>
+                                        
+                                        {{-- 2. IN-PROGRESS / APPROVED STATUS: Show Cancel --}}
+                                        @elseif (in_array($application->approval_status, ['noted_by_academic_head', 'recommended_by_hr', 'approved_with_pay', 'approved_without_pay']))
+                                            <form action="{{ route('leave_applications.cancel', $application->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Are you sure you want to cancel this leave application? This will notify HR and Admin.');">
+                                                @csrf
+                                                @method('PUT')
+                                                <button type="submit" class="text-yellow-600 hover:text-yellow-900 ml-3">Cancel Leave</button>
+                                            </form>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No leave applications found.</td>
+                                    <td colspan="10" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No leave applications found.</td>
                                 </tr>
                             @endforelse
                         </tbody>

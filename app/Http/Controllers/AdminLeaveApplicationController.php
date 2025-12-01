@@ -25,6 +25,7 @@ class AdminLeaveApplicationController extends Controller
     public function index()
     {
         $pendingApplications = LeaveApplication::where('admin_status', 'pending')
+                                                ->where('hr_status', 'approved')
                                                 ->with(['employee', 'classesToMiss'])
                                                 ->orderBy('created_at', 'asc')
                                                 ->get();
@@ -44,6 +45,7 @@ class AdminLeaveApplicationController extends Controller
 
         // Load related data
         $leaveApplication->load(['employee', 'classesToMiss.substituteTeacher']);
+         
 
         return view('admin.leave_applications.review', compact('leaveApplication'));
     }
@@ -101,5 +103,37 @@ class AdminLeaveApplicationController extends Controller
 
         return redirect()->route('admin.leave_applications.index')->with('success', "Leave application {$decision} successfully.");
     }
+    /**
+     * Cancel an already approved leave application.
+     */
+    public function cancel(Request $request, LeaveApplication $leaveApplication)
+    {
+        // 1. Check if the leave is actually approved
+        // Note: checking for 'approved_with_pay' or 'approved_without_pay' based on your decide method
+        if (!in_array($leaveApplication->admin_status, ['approved_with_pay', 'approved_without_pay', 'approved'])) {
+            return redirect()->back()->with('error', 'Only approved applications can be cancelled.');
+        }
 
+        // 2. Update Status to Cancelled
+        $leaveApplication->admin_status = 'cancelled';
+        $leaveApplication->approval_status = 'cancelled'; // Sync main status if used
+        $leaveApplication->save();
+
+        // 3. (Optional) Notify Employee
+        // $leaveApplication->employee->user->notify(new LeaveApplicationDecision($leaveApplication, 'cancelled', Auth::user()->name, 'Cancelled by Admin'));
+
+        return redirect()->back()->with('success', 'Leave application has been cancelled successfully.');
+    }
+    /**
+     * Show ALL leave applications (Approved, Rejected, Cancelled).
+     */
+    public function allLeaveApplications()
+    {
+        // Fetch all applications, ordered by newest first
+        $leaveApplications = LeaveApplication::with(['employee', 'leaveType'])
+                                ->orderBy('created_at', 'desc')
+                                ->paginate(10);
+
+        return view('admin.leave_applications.all_leave_applications', compact('leaveApplications'));
+    }
 }

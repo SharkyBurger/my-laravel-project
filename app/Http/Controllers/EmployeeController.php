@@ -6,6 +6,8 @@ use App\Models\Employee;
 use App\Models\User; // Import the User model
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule; // Import Rule for unique validation
+use Illuminate\Support\Str; // <-- ADD THIS LINE
+use Illuminate\Support\Facades\Hash; // <-- Make sure this line is also present
 
 class EmployeeController extends Controller
 {
@@ -21,7 +23,7 @@ class EmployeeController extends Controller
      */
     public function index()
     {
-        $employees = Employee::with('user')->orderBy('name')->paginate(10);
+        $employees = Employee::with('user')->orderBy('last_name')->paginate(10);
         return view('employees.index', compact('employees'));
     }
 
@@ -69,6 +71,35 @@ class EmployeeController extends Controller
     {
         $employee->load('user'); // Load the associated user
         return view('employees.show', compact('employee'));
+    }
+
+    /**
+     * Reset the password for the user linked to the specified employee.
+     */
+    public function resetPassword(Employee $employee)
+    {
+        // 1. Check if the employee has a linked user
+        if (!$employee->user) {
+            return redirect()->route('employees.index')->with('error', 'Cannot reset password: Employee is not linked to a user account.');
+        }
+
+        // 2. Generate a new random password
+        // Adjust the length (e.g., 10 to 12) as needed.
+        $newPassword = Str::random(12);
+
+        // 3. Update the user's password
+        $employee->user->update([
+            'password' => Hash::make($newPassword),
+        ]);
+
+        // 4. Redirect with a success message including the new password
+        // IMPORTANT: In a real application, you should email this password
+        // or use a proper password reset token flow. Displaying it directly
+        // in a flash message is a security risk, but used here for demonstration.
+        return redirect()->route('employees.index')->with(
+            'password_success',
+            "Password for **{$employee->user->email}** has been reset to: **{$newPassword}**. Please share this securely."
+        );
     }
 
     /**

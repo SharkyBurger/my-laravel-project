@@ -21,8 +21,23 @@ class HrController extends Controller
     public function index()
     {
         // Eager load the academic year relationship
-        $leavecredits = LeaveCredit::with('academicYear')->orderBy('academic_year_id', 'desc')->paginate(10);
-        return view('hr.leave_credits.index', compact('leavecredits'));
+   $leavecredits = LeaveCredit::with('academicYear', 'employee') // Eager load 'employee' too for the view
+        
+        // 1. Join the employees table to access the 'last_name' column
+        ->join('employees', 'leave_credits.employee_id', '=', 'employees.id')
+        
+        // 2. Add the sorting clause by the employee's last name
+        ->orderBy('employees.last_name', 'asc') 
+        
+        // 3. Keep secondary sorting (optional)
+        ->orderBy('academic_year_id', 'desc')
+        
+        // 4. Select the leave_credits columns to prevent overwriting issues
+        ->select('leave_credits.*') 
+        
+        ->paginate(10);
+        
+    return view('hr.leave_credits.index', compact('leavecredits'));
     }
 
     public function create()

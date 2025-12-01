@@ -30,6 +30,11 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    <x-nav-link href="{{ route('password.edit') }}" :active="request()->routeIs('password.*')">
+                        <i class="fas fa-key mr-3 text-lg"></i>
+                        {{ __('Change Password') }}
+                    </x-nav-link>
+                    
                     @if(Auth::user()->hasRole('academic_head') || Auth::user()->hasRole('registrar'))
                         <div class="mt-4 space-y-1">
                             <h3 class="text-xs font-semibold uppercase text-gray-400 mb-2 px-3">Academic Management</h3>
@@ -91,6 +96,10 @@
                                 <i class="fas fa-credit-card mr-3 text-lg"></i>
                                 {{ __('View All Remaining Leave Credits') }}
                             </x-nav-link>
+                            <x-nav-link href="{{ route('faculty-loadings.index') }}" :active="request()->routeIs('faculty-loadings.*')">
+                                <i class="fas fa-chalkboard-teacher mr-3 text-lg"></i>
+                                {{ __('Faculty Loading') }}
+                            </x-nav-link>
                         </div>
                     @endif
 
@@ -110,6 +119,10 @@
                             <x-nav-link href="{{ route('leave_applications.index') }}" :active="request()->routeIs('leave_applications.*')">
                                 <i class="fas fa-calendar-minus mr-3 text-lg"></i>
                                 {{ __('My Leave Applications') }}
+                            </x-nav-link>
+                            <x-nav-link href="{{ route('faculty.course_load') }}" :active="request()->routeIs('faculty.*')">
+                                <i class="fas fa-calendar-minus mr-3 text-lg"></i>
+                                {{ __('My Course Load') }}
                             </x-nav-link>
                         </div>
                     @endif

@@ -26,6 +26,9 @@ use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
 
 use App\Http\Controllers\HrController;
 
+use App\Http\Controllers\ChangePasswordController;
+use App\Http\Controllers\FacultyLoadingController;
+use App\Http\Controllers\FacultyCourseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,6 +61,10 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/leaveapplicationstatus', [LeaveApplicationStatusController::class, 'index'])->name('leaveapplicationstatus');
     Route::get('/my-leave', [EmployeeLeaveController::class, 'index']);
+    Route::put('/leave_applications/{leaveApplication}/cancel', [LeaveApplicationController::class, 'cancel'])
+         ->name('leave_applications.cancel');
+
+    Route::resource('leave_applications', LeaveApplicationController::class);
 
     // Admin and Teacher specific routes (apply roles middleware)
     Route::middleware(['role:academic_head|registrar'])->group(function () {
@@ -71,6 +78,7 @@ Route::middleware([
         Route::get('/students/upload', [StudentController::class, 'showUploadForm'])->name('students.upload.form');
         Route::post('/students/import', [StudentController::class, 'import'])->name('students.import');
         Route::resource('students', StudentController::class);
+        
 
     });
 
@@ -91,6 +99,9 @@ Route::middleware([
 
         Route::resource('employees', EmployeeController::class);
         
+        Route::post('/employees/{employee}/reset-password', [EmployeeController::class, 'resetPassword'])
+        ->name('employees.reset-password')
+        ->middleware('auth'); // Ensure this is protected by appropriate middleware
         
     });
 
@@ -129,11 +140,14 @@ Route::middleware([
 
     // Academic Head Leave Application Management Routes (Consolidated)
     // All routes in this group will require the 'academic_head' role.
-    Route::middleware(['role:academic_head'])->prefix('academic-head/leave-applications')->name('ah.leave_applications.')->group(function () {
-        Route::get('/', [AcademicHeadLeaveApplicationController::class, 'index'])->name('index'); // AH Dashboard / Pending review list
-        Route::get('/review/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); // View/Review specific application
-        Route::post('/decide/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'decide'])->name('decide'); // Process decision
-        Route::get('/all', [AcademicHeadLeaveApplicationController::class, 'allLeaveApplications'])->name('all'); // NEW: View all applications
+   Route::middleware(['role:academic_head'])->prefix('academic-head/leave-applications')->name('ah.leave_applications.')->group(function () {
+        Route::get('/', [AcademicHeadLeaveApplicationController::class, 'index'])->name('index'); 
+        Route::get('/review/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); 
+        Route::post('/decide/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'decide'])->name('decide'); 
+        Route::get('/all', [AcademicHeadLeaveApplicationController::class, 'allLeaveApplications'])->name('all'); 
+        
+        // --- ADD THIS LINE BELOW ---
+        Route::put('/cancel/{leaveApplication}', [AcademicHeadLeaveApplicationController::class, 'cancel'])->name('cancel');
     });
 
 
@@ -147,10 +161,13 @@ Route::middleware([
 
      // Admin Leave Application Management Routes (Assuming AdminLeaveApplicationController exists)
     Route::middleware(['role:admin'])->prefix('admin/leave-applications')->name('admin.leave_applications.')->group(function () {
-        Route::get('/', [AdminLeaveApplicationController::class, 'index'])->name('index'); // Admin Dashboard / Pending review list
-        Route::get('/review/{leaveApplication}', [AdminLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); // View/Review specific application
-        Route::post('/decide/{leaveApplication}', [AdminLeaveApplicationController::class, 'decide'])->name('decide'); // Process decision
-        // Consider adding a Route::get('/all', [HrLeaveApplicationController::class, 'allLeaveApplications'])->name('all'); for HR too
+        Route::get('/', [AdminLeaveApplicationController::class, 'index'])->name('index'); 
+        Route::get('/review/{leaveApplication}', [AdminLeaveApplicationController::class, 'review'])->name('review')->middleware('signed'); 
+        Route::post('/decide/{leaveApplication}', [AdminLeaveApplicationController::class, 'decide'])->name('decide');
+        
+        // --- ADD THIS LINE BELOW ---
+        Route::put('/cancel/{leaveApplication}', [AdminLeaveApplicationController::class, 'cancel'])->name('cancel');
+    Route::get('/all', [AdminLeaveApplicationController::class, 'allLeaveApplications'])->name('all');
     });
 
 
@@ -158,9 +175,30 @@ Route::middleware([
     Route::post('/notifications/{notification}', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
     Route::post('/test/markall', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 
-   
+    
     // Route::get('/test', [TestController::class, 'index'])->name('test.index');
     // Route::post('/test/call', [TestController::class, 'call'])->name('test.call');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile/password', [ChangePasswordController::class, 'edit'])
+        ->name('password.edit');
+
+    Route::put('/profile/password', [ChangePasswordController::class, 'update'])
+        ->name('profile.password.update');
+
+    Route::get('faculty-loadings/{id}/delete', [FacultyLoadingController::class, 'delete'])
+    ->name('faculty-loadings.delete');
+
+    Route::resource('faculty-loadings', FacultyLoadingController::class);
+
+    // 1. Route to show the initial page with filters (No results yet)
+    Route::get('/faculty/course-load', [FacultyCourseController::class, 'index'])
+        ->name('faculty.course_load');
+        
+    // 2. Route to show the filtered results
+    Route::get('/faculty/course-load/view', [FacultyCourseController::class, 'showLoad'])
+        ->name('faculty.course_load.show');
 });
 
 // Standard Jetstream authentication routes

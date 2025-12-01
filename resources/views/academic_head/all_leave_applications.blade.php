@@ -1,4 +1,4 @@
-@extends('layouts.admin') {{-- IMPORTANT: Adjust this to your actual main layout file --}}
+@extends('layouts.admin') 
 
 @section('header')
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">
@@ -20,24 +20,12 @@
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Employee
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Type
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Dates
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            AH Status
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            HR Status
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Actions
-                                        </th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AH Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">HR Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
@@ -58,6 +46,7 @@
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                     @if($application->ah_status === 'approved') bg-green-100 text-green-800
                                                     @elseif($application->ah_status === 'rejected') bg-red-100 text-red-800
+                                                    @elseif($application->ah_status === 'cancelled') bg-gray-100 text-gray-800
                                                     @else bg-gray-100 text-gray-800 @endif">
                                                     {{ ucfirst($application->ah_status) }}
                                                 </span>
@@ -75,8 +64,19 @@
                                                     {{-- Link to review page if still pending AH approval --}}
                                                     <a href="{{ URL::signedRoute('ah.leave_applications.review', ['leaveApplication' => $application->id]) }}" class="text-indigo-600 hover:text-indigo-900 mr-2">Review</a>
                                                 @else
-                                                    {{-- Link to view the application if already reviewed --}}
-                                                    <a href="{{ URL::signedRoute('ah.leave_applications.review', ['leaveApplication' => $application->id]) }}" class="text-gray-400 cursor-not-allowed" aria-disabled="true">View</a>
+                                                    {{-- View Button --}}
+                                                    <a href="{{ URL::signedRoute('ah.leave_applications.review', ['leaveApplication' => $application->id]) }}" class="text-gray-500 hover:text-gray-700 mr-2">View</a>
+                                                    
+                                                    {{-- CANCEL BUTTON (This was missing) --}}
+                                                    @if($application->ah_status === 'approved')
+                                                        <form action="{{ route('ah.leave_applications.cancel', $application->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Are you sure you want to CANCEL this approved leave?');">
+                                                            @csrf
+                                                            @method('PUT')
+                                                            <button type="submit" class="text-red-600 hover:text-red-900 ml-2" title="Cancel Approved Leave">
+                                                                Cancel
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                 @endif
                                             </td>
                                         </tr>
@@ -84,9 +84,8 @@
                                 </tbody>
                             </table>
                         </div>
-
                         <div class="mt-4">
-                            {{ $leaveApplications->links() }} {{-- Renders pagination links --}}
+                            {{ $leaveApplications->links() }} 
                         </div>
                     @endif
                 </div>
@@ -96,7 +95,6 @@
 @endsection
 @push('scripts')
 <script>
-    // Required if you use URL::signedRoute in the Blade file directly and get an error
-    // @php use Illuminate\Support\Facades\URL; @endphp should be at the very top of the Blade file.
+    // @php use Illuminate\Support\Facades\URL; @endphp
 </script>
 @endpush

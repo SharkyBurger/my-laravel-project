@@ -53,29 +53,65 @@ class LeaveApplicationController extends Controller
         return view('leave_applications.index', compact('leaveApplications', 'employees', 'leaveTypes', 'approvalStatuses', 'remainingCredits'));
     }
 
-    public function all(Request $request)
+
+        public function all(Request $request)
     {
+        // 1. GET FILTER VALUES from the URL query string
+        $employeeId = $request->input('employee_id'); // e.g., filter by employee
+        // $leaveType = $request->input('type');         // e.g., filter by leave type
+        $leaveTypeId = $request->input('leave_type_id'); // Now retrieving the ID
+        $status = $request->input('status');          // e.g., filter by status
 
-        
-            
-        
-            // Fetch all leave applications with their associated employee data
-            $leaveApplications = LeaveApplication::with('employee')
-                                                ->orderBy('date_filed', 'desc')
-                                            
-                                            ->paginate(10); // Paginate for large datasets
-           
+        // Start the base query
+        $leaveApplications = LeaveApplication::with('employee')
+                                            ->orderBy('date_filed', 'desc');
 
-        
+        // 2. APPLY FILTERS using conditional 'when' clauses
 
+        // Filter by Employee ID (assuming your form input for Employee is 'employee_id')
+        $leaveApplications->when($employeeId, function ($query, $employeeId) {
+            return $query->where('employee_id', $employeeId);
+        });
+
+        // Filter by Leave Type (No Join needed!)
+        $leaveApplications->when($leaveTypeId, function ($query, $leaveTypeId) {
+            // Query the correct foreign key column
+            return $query->where('leave_type_id', $leaveTypeId); 
+        });
+
+        // Filter by Status (assuming your form input for Status is 'status')
+        $leaveApplications->when($status, function ($query, $status) {
+            // Ensure status matches your database column name, e.g., 'status'
+            return $query->where('approval_status', $status);
+        });
+
+        // Execute the final query and paginate
+        $leaveApplications = $leaveApplications->paginate(10); 
         
+        //-------------------------------------------------------------
+
         // For filter dropdowns (optional)
         $employees = Employee::orderBy('name')->get();
-        $leaveTypes = ['service_incentive_leave', 'sick_leave', 'vacation_leave', 'other'];
-        $approvalStatuses = ['pending', 'approved_with_pay', 'approved_without_pay', 'rejected']; // Basic statuses
+        $leaveTypes = LeaveType::all();
+        $approvalStatuses = [
+            'pending', 
+            'approved_with_pay', 
+            'approved_without_pay', 
+            'rejected'
+        ];
 
-        return view('leave_applications.all', compact('leaveApplications', 'employees','leaveTypes', 'approvalStatuses'));
+        // 3. PASS THE APPLIED FILTER VALUES to the view
+        return view('leave_applications.all', compact(
+            'leaveApplications', 
+            'employees', 
+            'leaveTypes', 
+            'approvalStatuses',
+            'employeeId', // Pass these back to pre-select the dropdowns
+            'leaveTypeId',
+            'status'
+        ));
     }
+
 
        /**
      * Show the form for creating a new leave application.
@@ -152,13 +188,11 @@ class LeaveApplicationController extends Controller
                 if ($leaveApplicationClass->substitute_teacher_id) {
                     $substituteTeacher = $leaveApplicationClass->substituteTeacher;
                    
-                    
                     // Ensure the substitute teacher has a related user model to receive notifications
                     if ($substituteTeacher && $substituteTeacher->user) {
-                        $tname = $leaveApplication->employee->last_name.' '.$leaveApplication->employee->first_name.' '.$leaveApplication->employee->mid_name;
                         $substituteTeacher->user->notify(new SubstituteTeacherAssignment(
                             $leaveApplicationClass,
-                            $tname // The name of the teacher taking leave
+                            $leaveApplication->employee->name // The name of the teacher taking leave
                         ));
                     }
                 }
@@ -320,10 +354,9 @@ class LeaveApplicationController extends Controller
                 if ($shouldNotify) {
                     $substituteTeacher = $currentClass->substituteTeacher;
                     if ($substituteTeacher && $substituteTeacher->user) {
-                         $tname = $leaveApplication->employee->last_name.' '.$leaveApplication->employee->first_name.' '.$leaveApplication->employee->mid_name;
                          $substituteTeacher->user->notify(new SubstituteTeacherAssignment(
                             $currentClass,
-                            $tname
+                            $leaveApplication->employee->name
                         ));
                     }
                 }
@@ -333,129 +366,7 @@ class LeaveApplicationController extends Controller
         return redirect()->route('leave_applications.index')->with('success', 'Leave application updated successfully. Substitute teachers received in-app assignments.');
     }
 
-    // 2
-    // public function update(Request $request, LeaveApplication $leaveApplication)
-    // {
-    //     $rules = [
-    //         'employee_id' => 'required|exists:employees,id',
-    //         'leave_type' => 'required|string|in:service_incentive_leave,sick_leave,vacation_leave,other',
-    //         'reason' => 'required|string|max:1000',
-    //         'start_date' => 'required|date',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //         'tasks_endorsed' => 'nullable|string|max:1000',
-    //         'personnel_to_take_over_id' => 'nullable|exists:employees,id',
-    //         'acknowledgement_personnel_take_over_signature' => 'nullable|string|max:255',
-    //     ];
-
-    //     // Validation for individual class rows
-    //     $rules['classes_data'] = 'nullable|array';
-    //     $rules['classes_data.*.id'] = 'nullable|exists:leave_application_classes,id'; // For existing rows to update
-    //     $rules['classes_data.*.course_code'] = 'nullable|string|max:255';
-    //     $rules['classes_data.*.title'] = 'nullable|string|max:255';
-    //     $rules['classes_data.*.day_time_room'] = 'nullable|string|max:255';
-    //     $rules['classes_data.*.topics'] = 'nullable|string|max:1000';
-    //     $rules['classes_data.*.substitute_teacher_id'] = 'nullable|exists:employees,id';
-    //     $rules['classes_data.*.acknowledgement_signature'] = 'nullable|string|max:255';
-
-    //     $validatedData = $request->validate($rules);
-
-    //     $startDate = Carbon::parse($validatedData['start_date']);
-    //     $endDate = Carbon::parse($validatedData['end_date']);
-    //     $validatedData['total_days'] = $startDate->diffInDays($endDate) + 1;
-
-    //     // Separate classes_data from main validatedData
-    //     $classesToProcess = $validatedData['classes_data'] ?? [];
-    //     unset($validatedData['classes_data']);
-
-    //     $leaveApplication->update($validatedData);
-
-    //     // --- Syncing Classes ---
-    //     // This is a common pattern for "hasMany" relationships:
-    //     // 1. Get IDs of existing classes for this leave application.
-    //     // 2. Determine which existing classes are NOT in the new submission (to delete).
-    //     // 3. Loop through submitted classes: update existing, create new.
-
-    //     $existingClassIds = $leaveApplication->classesToMiss->pluck('id')->toArray();
-    //     $submittedClassIds = collect($classesToProcess)->pluck('id')->filter()->toArray(); // Filter out null/empty IDs
-
-    //     // Classes to delete (existing IDs not in submitted IDs)
-    //     $classesToDelete = array_diff($existingClassIds, $submittedClassIds);
-    //     LeaveApplicationClass::destroy($classesToDelete); // Delete all at once
-
-    //     foreach ($classesToProcess as $classData) {
-    //         // Remove empty rows on update as well
-    //         if (array_filter($classData, function($value) { return $value !== null && $value !== ''; })) { // Check for non-empty values
-    //             if (isset($classData['id']) && in_array($classData['id'], $existingClassIds)) {
-    //                 // This is an existing class, update it
-    //                 $class = LeaveApplicationClass::find($classData['id']);
-    //                 if ($class) {
-    //                     $class->update($classData);
-    //                 }
-    //             } else {
-    //                 // This is a new class row (no ID or not an existing one), create it
-    //                 $leaveApplication->classesToMiss()->create($classData);
-    //             }
-    //         } else if (isset($classData['id']) && in_array($classData['id'], $existingClassIds)) {
-    //             // If a row was previously filled but now all fields are empty, delete it
-    //             LeaveApplicationClass::destroy($classData['id']);
-    //         }
-    //     }
-
-    //     return redirect()->route('leave_applications.index')->with('success', 'Leave application updated successfully.');
-    // }
-
-//    public function store(Request $request)
-//     {
-//         $rules = [
-//             'employee_id' => 'required|exists:employees,id',
-//             'leave_type' => 'required|string|in:service_incentive_leave,sick_leave,vacation_leave,other',
-//             'reason' => 'required|string|max:1000',
-//             'start_date' => 'required|date',
-//             'end_date' => 'required|date|after_or_equal:start_date',
-//             'tasks_endorsed' => 'nullable|string|max:1000',
-//             'personnel_to_take_over_id' => 'nullable|exists:employees,id',
-//             'acknowledgement_personnel_take_over_signature' => 'nullable|string|max:255',
-//         ];
-
-//         if ($request->has('classes_to_miss')) {
-//             $rules['classes_to_miss'] = 'array';
-//             $rules['classes_to_miss.*.course_code'] = 'nullable|string|max:255';
-//             $rules['classes_to_miss.*.title'] = 'nullable|string|max:255';
-//             $rules['classes_to_miss.*.day_time_room'] = 'nullable|string|max:255';
-//             $rules['classes_to_miss.*.topics'] = 'nullable|string|max:1000';
-//             $rules['classes_to_miss.*.substitute_teacher_id'] = 'nullable|exists:employees,id';
-//             $rules['classes_to_miss.*.acknowledgement_signature'] = 'nullable|string|max:255';
-//         }
-
-//         $validatedData = $request->validate($rules);
-
-//         // --- NEW: Calculate total_days ---
-//         $startDate = Carbon::parse($validatedData['start_date']);
-//         $endDate = Carbon::parse($validatedData['end_date']);
-//         // +1 because Carbon's diffInDays counts the number of 24-hour periods.
-//         // If start and end are the same day, diffInDays is 0, but it's 1 day of leave.
-//         $validatedData['total_days'] = $startDate->diffInDays($endDate) + 1;
-//         // --- END NEW ---
-
-//         if (isset($validatedData['classes_to_miss'])) {
-//             $validatedData['classes_to_miss'] = json_encode($validatedData['classes_to_miss']);
-//         } else {
-//             $validatedData['classes_to_miss'] = null;
-//         }
-
-//         // Set date_filed to now if it's not handled elsewhere
-//         $validatedData['date_filed'] = Carbon::now();
-
-//         // Set initial status if not handled elsewhere (e.g., 'pending')
-//         if (!isset($validatedData['approval_status'])) {
-//             $validatedData['approval_status'] = 'pending';
-//         }
-
-//         $leaveApplication = LeaveApplication::create($validatedData);
-
-//         return redirect()->route('leave_applications.index')->with('success', 'Leave application submitted successfully.');
-//     }
-
+   
 
     /**
      * Display the specified leave application.
@@ -471,66 +382,7 @@ class LeaveApplicationController extends Controller
         return view('leave_applications.show', compact('leaveApplication'));
     }
 
-//    public function edit(LeaveApplication $leaveApplication)
-//     {
-//         $leaveApplication->load('employee'); // Eager load employee for the form
 
-//         $employees = Employee::orderBy('name')->get();
-//         $teachers = Employee::where('role', 'teacher')->orderBy('name')->get();
-//         $staffPersonnel = Employee::where('role', 'staff')->orderBy('name')->get();
-
-//         $loggedInEmployee = null; // For edit, this might not be strictly needed, but keep for consistency
-//         if (Auth::check() && Auth::user()->employee) {
-//             $loggedInEmployee = Auth::user()->employee;
-//         }
-
-//         return view('leave_applications.edit', compact('leaveApplication', 'employees', 'loggedInEmployee', 'teachers', 'staffPersonnel'));
-//     }
-
-    // public function update(Request $request, LeaveApplication $leaveApplication)
-    // {
-    //     $rules = [
-    //         'employee_id' => 'required|exists:employees,id',
-    //         'leave_type' => 'required|string|in:service_incentive_leave,sick_leave,vacation_leave,other',
-    //         'reason' => 'required|string|max:1000',
-    //         'start_date' => 'required|date',
-    //         'end_date' => 'required|date|after_or_equal:start_date',
-    //         // 'status' => 'required|string|in:pending,approved_with_pay,approved_without_pay,rejected', // Assuming status is handled by admin
-    //         'tasks_endorsed' => 'nullable|string|max:1000',
-    //         'personnel_to_take_over_id' => 'nullable|exists:employees,id',
-    //         'acknowledgement_personnel_take_over_signature' => 'nullable|string|max:255',
-    //         // approval_status, academic_head_noted_at, etc. are likely managed by a separate admin process,
-    //         // so they typically wouldn't be in the update rules for the user submission.
-    //     ];
-
-    //     if ($request->has('classes_to_miss')) {
-    //         $rules['classes_to_miss'] = 'array';
-    //         $rules['classes_to_miss.*.course_code'] = 'nullable|string|max:255';
-    //         $rules['classes_to_miss.*.title'] = 'nullable|string|max:255';
-    //         $rules['classes_to_miss.*.day_time_room'] = 'nullable|string|max:255';
-    //         $rules['classes_to_miss.*.topics'] = 'nullable|string|max:1000';
-    //         $rules['classes_to_miss.*.substitute_teacher_id'] = 'nullable|exists:employees,id';
-    //         $rules['classes_to_miss.*.acknowledgement_signature'] = 'nullable|string|max:255';
-    //     }
-
-    //     $validatedData = $request->validate($rules);
-
-    //     // --- NEW: Calculate total_days for update ---
-    //     $startDate = Carbon::parse($validatedData['start_date']);
-    //     $endDate = Carbon::parse($validatedData['end_date']);
-    //     $validatedData['total_days'] = $startDate->diffInDays($endDate) + 1;
-    //     // --- END NEW ---
-
-    //     if (isset($validatedData['classes_to_miss'])) {
-    //         $validatedData['classes_to_miss'] = json_encode($validatedData['classes_to_miss']);
-    //     } else {
-    //         $validatedData['classes_to_miss'] = null;
-    //     }
-
-    //     $leaveApplication->update($validatedData);
-
-    //     return redirect()->route('leave_applications.index')->with('success', 'Leave application updated successfully.');
-    // }
     /**
      * Remove the specified leave application from storage.
      */

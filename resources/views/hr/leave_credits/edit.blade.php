@@ -20,17 +20,23 @@
 
                     
                     <div class="mt-4">
-                        <x-label for="employee_id" value="{{ __('Employee Name') }}" />
-                        <select id="employee_id" name="employee_id" class="block mt-1 w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
-                            <option value="">-- Select an Employee --</option>
-                            @foreach ($employees as $employee)
-                                
-                                <option value="{{ $employee->id }}" {{ old('employee_id', $leavecredit->employee_id) == $employee->id ? 'selected' : '' }}>
-                                    {{ $employee->last_name .' '.$employee->first_name.' '$employee->mid_name}}
-                                </option>
-                            @endforeach
-                        </select>
-                        <x-input-error for="employee_id" class="mt-2" />
+                        <x-label for="employee_name" value="{{ __('Employee Name') }}" />
+    
+                            {{-- 1. Display the name as a non-editable text field --}}
+                            <input 
+                                id="employee_name" 
+                                class="block mt-1 w-full border-gray-300 bg-gray-100 rounded-md shadow-sm cursor-not-allowed" 
+                                type="text" 
+                                value="{{ $leavecredit->employee->last_name .' '.$leavecredit->employee->first_name.' '.$leavecredit->employee->mid_name }}" 
+                                disabled 
+                            />
+
+                            {{-- 2. Add a HIDDEN field to send the required ID to the server --}}
+                            <input 
+                                type="hidden" 
+                                name="employee_id" 
+                                value="{{ $leavecredit->employee_id }}" 
+                            />
                     </div>
 
                     <div class="mt-4">
